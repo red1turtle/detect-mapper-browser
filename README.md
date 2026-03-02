@@ -181,7 +181,7 @@ Features:
 
 ![Sysmon Config Enrichment (add snippets to cart)](docs/screenshots/sysmon_added_to_cart.png)
 
-![Sysmon refs modal (copy helpers + cart)](docs/screenshots/family_sysmon_config_generator_ralated_references.png)
+![Sysmon refs modal (copy helpers + cart)](docs/screenshots/family_sysmon_config_generator_related_references.png)
 
 ![Sysmon snippet cart checkout](docs/screenshots/checkout_sysmon_cart.png)
 
