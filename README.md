@@ -1,130 +1,321 @@
-# detect-mapper-browser
+# MitreBrowser — Detection Map JSON Viewer
 
-ATT&CK Detect Map is an offline-first toolkit and browser UI for exploring MITRE ATT&CK detection content with practical telemetry enrichment.
+A single-file, offline-capable HTML app for browsing a **MITRE ATT&CK “detection map”** in a nested structure:
 
-## What this repository contains
+**Tactic → Technique/Sub-technique → Detection Strategy → Analytic → Log Source Reference**
 
-This repo is organized as a small pipeline:
+This zip contains:
 
-1. **Acquire ATT&CK enterprise data** (`mitre_deteciton_map/get-mitreEnterpriseData.ps1`).
-2. **Build a detection map JSON** from ATT&CK STIX objects (`mitre_deteciton_map/build_detection_map.ps1`).
-3. **Optionally enrich with Sigma packs** (`sigma_enrichment/Combine-SigmaRules.ps1`).
-4. **Optionally enrich with Windows event message metadata** (`windows_event_message_templates/get-providerMessages.ps1`).
-5. **Explore interactively in-browser** with `detect-mapper-browser.html` (no backend required).
+- `MitreBrowser/detect-mapper-browser.html` — the viewer (self-contained HTML/CSS/JS)
+- `MitreBrowser/files/mitre_deteciton_map/detection_map.json` — example detection map dataset (prebuilt)
+- Optional enrichment packs:
+  - `MitreBrowser/files/sigma_enrichment/sigma.combined.pack.json` — Sigma rules pack (JSON)
+  - `MitreBrowser/files/windows_event_message_templates/message.zip` (contains `message.json`) and `notemplate_message.json` — Windows event message catalog packs
 
-## Quick start
+> **Dataset stats (from the included `detection_map.json`):** 14 tactics, 250 techniques, 637 sub-techniques, 887 detection strategies, 2169 analytics, 5194 log-source references.
 
-### 1) Build the detection map data
+---
+
+## Screenshots
+
+> The images below are **placeholders** (generated in this environment).  
+> Replace them by running the screenshot-capture steps in **“Generate real screenshots”**.
+
+![Viewer loaded](docs/screenshots/01_loaded.png)
+
+![Tactic selected](docs/screenshots/02_tactic_selected.png)
+
+![Technique details](docs/screenshots/03_technique_details.png)
+
+---
+
+## Quickstart
+
+### Option A — open directly (no server)
+
+1. Open `detect-mapper-browser.html` in your browser (Chrome/Edge/Firefox).
+2. Click **Load JSON…** (or drag & drop) and select:
+   - `files/mitre_deteciton_map/detection_map.json`
+
+This path uses the browser `FileReader`, so it works even from `file://`.
+
+### Option B — run a tiny local web server (recommended)
+
+Running a local server enables **auto-load** via `?src=...` and makes shareable links behave more predictably.
+
+From the `MitreBrowser/` directory:
+
+```bash
+python -m http.server 8000
+```
+
+Open:
+
+- `http://127.0.0.1:8000/detect-mapper-browser.html?src=files/mitre_deteciton_map/detection_map.json`
+
+---
+
+## Feature tour
+
+### Navigation & filtering
+
+- **3-pane layout**
+  - **Tactics** (left): tactic list + counts
+  - **Techniques** (middle): techniques/sub-techniques in the selected tactic
+  - **Details** (right): strategy/analytic/log-source drill-down
+
+- **Tactic filters**
+  - *only tactics with coverage*
+  - *sort by coverage*
+
+- **Technique filters**
+  - *include sub-techniques*
+  - *only w/ strategies*
+  - *only w/ analytics*
+  - *only w/ log sources*
+
+- **Coverage rollups** shown as badges:
+  - Strategies / Analytics / Log sources
+
+### Search
+
+- **Global search (Ctrl+K / Cmd+K)** across IDs, names, channels
+  - Press **Enter** to open results
+  - Examples: `TA0009`, `T1056`, `DET0380`, `AN1070`, `Sysmon`, `EventCode=1`
+- **Technique search (`/`)** focuses the technique search box in the selected tactic.
+- Search results are clickable and **navigate** you to the matching tactic/technique/strategy/analytic/log-source.
+
+### Details view
+
+- **Scope switching**
+  - **This item** (only the selected technique/sub-technique)
+  - **Include sub-techniques / Technique family** (rolls up coverage)
+  - Family view can be **Flat** or **Grouped**
+- **Expand all / Collapse all** for strategy cards
+- **Copy-on-click chips** for IDs:
+  - Technique STIX id, external id (Txxxx)
+  - Detection strategy ids (DET*)
+  - Analytic ids (AN*)
+  - Data component STIX refs
+
+### Shareable links (hash routing)
+
+The viewer updates the URL hash with:
+
+- `t=<tactic-id>` (STIX id, not the external TA****)
+- `k=<tech-key>` where tech-key is:
+  - `tech:<technique-stix-id>` or
+  - `sub:<parent-stix-id>:<subtechnique-stix-id>`
+
+Use **Copy Link** in the Details panel to capture a shareable URL.
+
+### Log source pivot + export
+
+Under **Log Source References (Pivot)**:
+
+- **Download CSV** (`logsource-pivot.csv`)
+- **Copy unique LogSource:Channel**
+- Clickable `DET*` / `AN*` values jump via the global search overlay.
+
+### Windows Event enrichment (optional pack)
+
+Click **WinEvent Pack…** and load a Windows event catalog JSON.
+
+Included options:
+
+- `files/windows_event_message_templates/notemplate_message.json` (large; includes many events but templates may be empty)
+- `files/windows_event_message_templates/message.zip` → unzip to `message.json` and load that
+
+When loaded:
+- Event ID tokens in channels (e.g., `EventCode=4688`) become clickable chips.
+- Clicking an Event ID opens a modal with the provider/event metadata (and template/message when available).
+
+### Sysmon enrichment (built-in)
+
+The HTML embeds:
+
+- A Sysmon manifest (schema reference)
+- Two Sysmon config “profiles” (Ion-Storm + SwiftOnSecurity) as snippet sources
+
+Features:
+- Detects Sysmon log sources and parses Event IDs from `EventCode=...`
+- Click an **EID chip** to open schema details
+- **Sysmon snippet cart**
+  - add/remove snippets per Event ID
+  - **Checkout & download** generates complete Sysmon config wrappers (`sysmon-checkout.<profile>.xml`)
+
+### Sigma enrichment (optional pack)
+
+Click **Sigma Pack…** and load:
+
+- `files/sigma_enrichment/sigma.combined.pack.json`
+
+Features:
+- Matches Sigma rules to the currently selected tactic/technique context
+- **Sigma cart**
+  - add/remove matched rules
+  - **Checkout & download** exports a multi-document YAML bundle (`sigma-cart.yml`)
+
+### Quality-of-life
+
+- **Theme toggle** (light/dark)
+- **Reset** button to clear state
+- **Esc** closes modals
+
+---
+
+## Generate real screenshots
+
+This repo includes placeholder images under `docs/screenshots/`.  
+To generate real UI screenshots on your workstation, here are two practical approaches.
+
+### Approach 1 — Playwright (recommended)
+
+1. From `MitreBrowser/`, start a local server:
+
+```bash
+python -m http.server 8000
+```
+
+2. Install Playwright (Node.js):
+
+```bash
+npm init -y
+npm i -D playwright
+npx playwright install chromium
+```
+
+3. Create `tools/capture_screenshots.mjs`:
+
+```js
+import { chromium } from "playwright";
+import fs from "node:fs";
+
+const base = "http://127.0.0.1:8000/detect-mapper-browser.html?src=files/mitre_deteciton_map/detection_map.json";
+const outDir = "docs/screenshots";
+fs.mkdirSync(outDir, { recursive: true });
+
+const shots = [
+  { name: "01_loaded.png", url: base },
+  { name: "02_tactic_selected.png", url: base + "#t=x-mitre-tactic--78b23412-0651-46d7-a540-170a1ce8bd5a" },
+  {
+    name: "03_technique_details.png",
+    url: base + "#t=x-mitre-tactic--78b23412-0651-46d7-a540-170a1ce8bd5a&k=tech%3Aattack-pattern--3d333250-30e4-4a82-9edc-756c68afc529"
+  },
+];
+
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+
+  for (const s of shots) {
+    await page.goto(s.url, { waitUntil: "networkidle" });
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: `${outDir}/${s.name}`, fullPage: true });
+    console.log("wrote", s.name);
+  }
+
+  await browser.close();
+})();
+```
+
+4. Run:
+
+```bash
+node tools/capture_screenshots.mjs
+```
+
+### Approach 2 — Manual OS screenshots
+
+1. Open the viewer (Option A or B above).
+2. Capture:
+   - loaded state
+   - a tactic selected
+   - a technique details view with pivot/enrichment visible
+3. Save as:
+   - `docs/screenshots/01_loaded.png`
+   - `docs/screenshots/02_tactic_selected.png`
+   - `docs/screenshots/03_technique_details.png`
+
+---
+
+## Rebuilding the data assets (PowerShell)
+
+### Rebuild `detection_map.json` (MITRE ATT&CK Enterprise STIX → nested map)
+
+Scripts are under `files/mitre_deteciton_map/`.
+
+1. Download the Enterprise ATT&CK bundle:
+
+- `get-mitreEnterpriseData.ps1` downloads a pinned bundle to `c:\temp\enterprise_attack.json`.
+
+2. Build the nested detection map:
+
+- `build_detection_map.ps1` reads an `enterprise_attack.json` or `.zip` and emits `detection_map.json`.
+
+Example:
 
 ```powershell
-pwsh ./mitre_deteciton_map/get-mitreEnterpriseData.ps1
-pwsh ./mitre_deteciton_map/build_detection_map.ps1 \
-  -In ./mitre_deteciton_map/enterprise_attack.zip \
-  -Out ./mitre_deteciton_map/detection_map.json \
-  -IncludeObjectFields
+# From files\mitre_deteciton_map\
+.\build_detection_map.ps1 -In c:\temp\enterprise_attack.json -Out .\detection_map.json
 ```
 
-### 2) Open the browser UI
+Optional flags:
+- `-IncludeRevokedDeprecated`
+- `-IncludeObjectFields`
 
-Open `detect-mapper-browser.html` directly in your browser, then use:
+### Build a Sigma JSON pack
 
-- **Load JSON…** to load your detection map.
-- **WinEvent Pack…** to load Windows provider/event templates.
-- **Sigma Pack…** to load a combined Sigma pack.
+`files/sigma_enrichment/Combine-SigmaRules.ps1` combines Sigma YAML rules into a single JSON “pack”.
 
-### 3) Investigate coverage
+Requirements:
+- PowerShell 7+ recommended (parallel YAML parsing)
+- `powershell-yaml` module
 
-Use tactic and technique filters, global search, and object detail panes to trace:
+Example:
 
-- ATT&CK tactic → technique/sub-technique
-- detection strategy
-- analytics
-- log source references
-
-
-## Screenshot previews for docs
-
-You can generate documentation-ready UI previews with the built-in sample archives in this repo.
-
-1. Extract sample JSON files from the bundled ZIP artifacts:
-
-```bash
-python - <<'PY2'
-import zipfile, pathlib
-out = pathlib.Path('.tmp_preview')
-out.mkdir(exist_ok=True)
-for z in [
-    'mitre_deteciton_map/detection_map.zip',
-    'sigma_enrichment/sigma.combined.pack.zip',
-    'windows_event_message_templates/message.zip',
-]:
-    with zipfile.ZipFile(z) as f:
-        f.extractall(out)
-print('Extracted into', out)
-PY2
+```powershell
+Install-Module powershell-yaml -Scope CurrentUser
+.\Combine-SigmaRules.ps1 -InputPath .\sigma_all_rules.zip, .\sigma-master.zip -OutputDir .\out
 ```
 
-2. Serve the repository root and open `detect-mapper-browser.html`:
+### Build a Windows Event message catalog pack
 
-```bash
-python -m http.server 4173
+`files/windows_event_message_templates/get-providerMessages.ps1` enumerates provider metadata.
+
+Notes:
+- `#Requires -RunAsAdministrator`
+- The output is designed to match what Event Viewer / `Get-WinEvent` shows.
+
+---
+
+## Repo layout
+
+```text
+MitreBrowser/
+  detect-mapper-browser.html
+  files/
+    mitre_deteciton_map/
+      detection_map.json
+      build_detection_map.ps1
+      get-mitreEnterpriseData.ps1
+      enterprise_attack.zip
+    sigma_enrichment/
+      sigma.combined.pack.json
+      Combine-SigmaRules.ps1
+      sigma-master.zip
+      sigma_all_rules.zip
+    windows_event_message_templates/
+      message.zip          # contains message.json
+      notemplate_message.json
+      get-providerMessages.ps1
 ```
 
-3. Capture screenshots with your browser automation workflow and place PNG files under `docs/screenshots/`.
+---
 
-Suggested scenarios and output names:
+## Notes / troubleshooting
 
-- `docs/screenshots/preview-empty.png` — fresh UI before loading data.
-- `docs/screenshots/preview-loaded.png` — detection map loaded and a tactic selected.
-- `docs/screenshots/preview-enriched.png` — detection map + optional packs loaded.
-- `docs/screenshots/preview-winevent-enrichment.png` — technique details showing **Windows Event Enrichment** after loading `message.json`.
-- `docs/screenshots/preview-sysmon-snippet-modal.png` — **Sysmon refs/snippet helper** modal for a selected Event ID.
-- `docs/screenshots/preview-sysmon-cart-checkout.png` — **Sysmon snippet cart checkout** showing generated config output.
-- `docs/screenshots/preview-sigma-enrichment.png` — **Sigma Rule Enrichment** card with matched rules in the details pane.
-- `docs/screenshots/preview-sigma-cart.png` — **Sigma cart checkout** modal with YAML export.
-
-### Feature gallery (documentation-friendly)
-
-Use these image blocks in docs once screenshots are captured and saved with the filenames above.
-
-#### Windows Event enrichment
-
-![Windows Event enrichment card](docs/screenshots/preview-winevent-enrichment.png)
-
-#### Sysmon snippet workflow (refs → cart → checkout)
-
-![Sysmon snippet helper modal](docs/screenshots/preview-sysmon-snippet-modal.png)
-![Sysmon snippet cart checkout](docs/screenshots/preview-sysmon-cart-checkout.png)
-
-#### Sigma enrichment + cart
-
-![Sigma enrichment details panel](docs/screenshots/preview-sigma-enrichment.png)
-![Sigma cart checkout modal](docs/screenshots/preview-sigma-cart.png)
-
-## Repository map
-
-- `detect-mapper-browser.html`: standalone viewer UI.
-- `mitre_deteciton_map/`: ATT&CK data retrieval + detection map build scripts.
-- `sigma_enrichment/`: Sigma aggregation tooling and prebuilt archives.
-- `windows_event_message_templates/`: Windows provider message extraction scripts and packs.
-- `sysmon_enrichment/`: Sysmon configs and schema references used for enrichment context.
-
-Each folder includes its own `README.md` with usage details.
-
-## How-to guides
-
-- Build ATT&CK detection map: see `mitre_deteciton_map/README.md`.
-- Build Sigma pack from ZIP sources: see `sigma_enrichment/README.md`.
-- Export Windows provider message templates: see `windows_event_message_templates/README.md`.
-- Work with Sysmon config/schema assets: see `sysmon_enrichment/README.md`.
-
-## Reference data and artifacts
-
-This repo includes source archives (`*.zip`), exported XML templates, and `.url` pointers to upstream resources to support offline or repeatable workflows.
-
-## Shoutouts
-
-- MITRE ATT&CK for ATT&CK STIX data and detection strategy/analytic modeling.
-- Sigma project and community maintainers for rule content and format conventions.
-- SwiftOnSecurity and Ion-Storm for widely used Sysmon configuration baselines.
-- Windows eventing ecosystem contributors whose provider metadata makes telemetry interpretation feasible.
+- **Large JSON**: use **Load JSON…** or drag&drop; pasting into the modal can be slow for multi-MB payloads.
+- **Auto-load** requires HTTP(s): `?src=...` uses `fetch()`, which browsers block for `file://` URLs.
+- **Nothing shows after loading**: confirm the JSON has the expected nested fields:
+  `tactics → techniques → x_mitre_detection_strategies → x_mitre_analytics → x_mitre_log_source_references`.
