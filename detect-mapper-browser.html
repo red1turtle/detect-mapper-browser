@@ -3221,7 +3221,7 @@ $('#btnReset').addEventListener('click', () => {
     const ids = Array.from(state.sigmaCart.values());
 
     $('#modalTitle').textContent = 'Sigma cart';
-    $('#modalSub').textContent = 'checkout = download selected Sigma rules as multi-doc YAML';
+    $('#modalSub').textContent = 'checkout = download selected Sigma rules as JSON collection (with YAML payload)';
 
     wrap.appendChild(el('div', {class:'small', style:'margin-bottom:10px'},
       ids.length ? `Selected ${fmtInt(ids.length)} rule(s).` : 'Cart is empty.'
@@ -3231,13 +3231,50 @@ $('#btnReset').addEventListener('click', () => {
       el('button', {class:'btn', onclick:() => { state.sigmaCart.clear(); updateSigmaCartIndicators(); dlg.close(); toast('Cleared Sigma cart'); }}, 'Clear cart'),
       el('button', {class:'btn primary', onclick:() => {
         const rules = ids.map(id => (EMBEDDED_SIGMA_RULES || []).find(r => r.id === id)).filter(Boolean);
-        const out = rules.map(r => (r.raw || '').trim()).filter(Boolean).join('\\n\\n---\\n\\n') + '\\n';
-        downloadText('sigma-cart.yml', out, 'text/yaml');
-        toast('Downloaded sigma-cart.yml');
-      }}, 'Checkout & download'),
+        const exported = {
+          generated_at_utc: new Date().toISOString(),
+          count: rules.length,
+          rules: rules.map(r => ({
+            id: r.id,
+            title: r.title,
+            description: r.description,
+            status: r.status,
+            level: r.level,
+            author: r.author,
+            date: r.date,
+            modified: r.modified,
+            references: r.references,
+            falsepositives: r.falsepositives,
+            tags: r.tags,
+            attack: r.attack,
+            logsource: r.logsource,
+            source_pack: r.source_pack,
+            path: r.path,
+            yaml: (r.raw || '').trim()
+          }))
+        };
+        downloadText('sigma-cart.json', JSON.stringify(exported, null, 2), 'application/json');
+        toast('Downloaded sigma-cart.json');
+      }}, 'Checkout & download (JSON)'),
       el('button', {class:'btn', onclick:() => {
         const rules = ids.map(id => (EMBEDDED_SIGMA_RULES || []).find(r => r.id === id)).filter(Boolean);
-        const out = rules.map(r => (r.raw || '').trim()).filter(Boolean).join('\\n\\n---\\n\\n') + '\\n';
+        const exported = {
+          generated_at_utc: new Date().toISOString(),
+          count: rules.length,
+          rules: rules.map(r => ({
+            id: r.id,
+            title: r.title,
+            source_pack: r.source_pack,
+            path: r.path,
+            yaml: (r.raw || '').trim()
+          }))
+        };
+        copyText(JSON.stringify(exported, null, 2));
+        toast('Copied JSON');
+      }}, 'Copy JSON'),
+      el('button', {class:'btn', onclick:() => {
+        const rules = ids.map(id => (EMBEDDED_SIGMA_RULES || []).find(r => r.id === id)).filter(Boolean);
+        const out = rules.map(r => (r.raw || '').trim()).filter(Boolean).join('\n\n---\n\n') + '\n';
         copyText(out);
         toast('Copied YAML');
       }}, 'Copy combined YAML'),
