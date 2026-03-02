@@ -18,14 +18,31 @@ This zip contains:
 
 ## Screenshots
 
-> The images below are **placeholders** (generated in this environment).  
-> Replace them by running the screenshot-capture steps in **“Generate real screenshots”**.
+These screenshots were captured from a real run of the viewer and map directly to the feature walkthrough below.
 
-![Viewer loaded](docs/screenshots/01_loaded.png)
+![Detection map loaded](docs/screenshots/loaded_detection_map.png)
 
-![Tactic selected](docs/screenshots/02_tactic_selected.png)
+![Technique details: strategies + analytics](docs/screenshots/detection_strtegies_and_analytics.png)
 
-![Technique details](docs/screenshots/03_technique_details.png)
+![Log source pivot table](docs/screenshots/logsources_linked_info.png)
+
+![WinEvent pack loader](docs/screenshots/load_winmessages.png)
+
+![Sigma pack loader](docs/screenshots/load_sigmarules.png)
+
+![Windows Event / Sysmon / Sigma enrichment panels](docs/screenshots/family_detect_winEID_strats.png)
+
+![Sysmon enrichment table (add to cart)](docs/screenshots/sysmon_added_to_cart.png)
+
+![Sysmon refs modal (snippets + cart)](docs/screenshots/family_sysmon_config_generator_ralated_references.png)
+
+![Sysmon cart checkout](docs/screenshots/checkout_sysmon_cart.png)
+
+![Sigma enrichment (rules list)](docs/screenshots/sigmarule_added_to_cart.png)
+
+![Sigma rule detail + YAML payload](docs/screenshots/family_sigma_rulepack_generator_ralated_references.png)
+
+![Sigma cart checkout](docs/screenshots/checkout_sigma_cart.png)
 
 ---
 
@@ -77,6 +94,8 @@ Open:
 - **Coverage rollups** shown as badges:
   - Strategies / Analytics / Log sources
 
+![Navigation overview (loaded map)](docs/screenshots/loaded_detection_map.png)
+
 ### Search
 
 - **Global search (Ctrl+K / Cmd+K)** across IDs, names, channels
@@ -98,6 +117,16 @@ Open:
   - Analytic ids (AN*)
   - Data component STIX refs
 
+![Details view (this item)](docs/screenshots/selffocused.png)
+
+![Details view controls + enrichment cards](docs/screenshots/selffocused_options.png)
+
+![Technique family rollup](docs/screenshots/family_oriented.png)
+
+![Technique family controls](docs/screenshots/familyfocused_options.png)
+
+![Analytic details + tuning knobs](docs/screenshots/detection_strtegies_and_analytics.png)
+
 ### Shareable links (hash routing)
 
 The viewer updates the URL hash with:
@@ -117,6 +146,8 @@ Under **Log Source References (Pivot)**:
 - **Copy unique LogSource:Channel**
 - Clickable `DET*` / `AN*` values jump via the global search overlay.
 
+![Log Source References (Pivot)](docs/screenshots/logsources_linked_info.png)
+
 ### Windows Event enrichment (optional pack)
 
 Click **WinEvent Pack…** and load a Windows event catalog JSON.
@@ -129,6 +160,10 @@ Included options:
 When loaded:
 - Event ID tokens in channels (e.g., `EventCode=4688`) become clickable chips.
 - Clicking an Event ID opens a modal with the provider/event metadata (and template/message when available).
+
+![WinEvent Pack button tooltip](docs/screenshots/load_winmessages.png)
+
+![Windows Event enrichment panel (with Sysmon/Sigma sections below)](docs/screenshots/family_detect_winEID_strats.png)
 
 ### Sysmon enrichment (built-in)
 
@@ -144,6 +179,12 @@ Features:
   - add/remove snippets per Event ID
   - **Checkout & download** generates complete Sysmon config wrappers (`sysmon-checkout.<profile>.xml`)
 
+![Sysmon Config Enrichment (add snippets to cart)](docs/screenshots/sysmon_added_to_cart.png)
+
+![Sysmon refs modal (copy helpers + cart)](docs/screenshots/family_sysmon_config_generator_ralated_references.png)
+
+![Sysmon snippet cart checkout](docs/screenshots/checkout_sysmon_cart.png)
+
 ### Sigma enrichment (optional pack)
 
 Click **Sigma Pack…** and load:
@@ -156,6 +197,14 @@ Features:
   - add/remove matched rules
   - **Checkout & download** exports a multi-document YAML bundle (`sigma-cart.yml`)
 
+![Sigma Pack button tooltip](docs/screenshots/load_sigmarules.png)
+
+![Sigma Rule Enrichment (rules list)](docs/screenshots/sigmarule_added_to_cart.png)
+
+![Sigma rule detail + YAML payload](docs/screenshots/family_sigma_rulepack_generator_ralated_references.png)
+
+![Sigma cart checkout](docs/screenshots/checkout_sigma_cart.png)
+
 ### Quality-of-life
 
 - **Theme toggle** (light/dark)
@@ -164,158 +213,42 @@ Features:
 
 ---
 
-## Generate real screenshots
+## Updating screenshots
 
-This repo includes placeholder images under `docs/screenshots/`.  
-To generate real UI screenshots on your workstation, here are two practical approaches.
+Screenshots referenced by this README live under `docs/screenshots/`. To update the visuals, overwrite the image files in that folder (keep the same filenames so links don’t break).
 
-### Approach 1 — Playwright (recommended)
+**Files referenced in this README**
 
-1. From `MitreBrowser/`, start a local server:
+- `loaded_detection_map.png` — viewer loaded (3-pane layout)
+- `selffocused.png` — “This item” scope view
+- `selffocused_options.png` — technique-level strategies with enrichment panels visible
+- `family_oriented.png` — “Technique family” scope rollup
+- `familyfocused_options.png` — family scope controls (flat/grouped, include sub-techniques, etc.)
+- `detection_strtegies_and_analytics.png` — detection strategy + analytic details (tuning knobs + log sources)
+- `logsources_linked_info.png` — log-source pivot table + export actions
+- `load_winmessages.png` — WinEvent pack loader UI
+- `family_detect_winEID_strats.png` — Windows Event enrichment + Sysmon/Sigma sections
+- `sysmon_added_to_cart.png` — Sysmon enrichment table (add to cart)
+- `family_sysmon_config_generator_ralated_references.png` — Sysmon refs modal (snippets + cart)
+- `checkout_sysmon_cart.png` — Sysmon snippet cart checkout/download
+- `load_sigmarules.png` — Sigma pack loader UI
+- `sigmarule_added_to_cart.png` — Sigma enrichment (rules list)
+- `family_sigma_rulepack_generator_ralated_references.png` — Sigma rule details + YAML payload
+- `checkout_sigma_cart.png` — Sigma cart checkout/download
 
-```bash
-python -m http.server 8000
-```
+### Manual capture (fastest)
 
-2. Install Playwright (Node.js):
+1. Open the viewer (see **Quickstart** above).
+2. Navigate to the state you want to capture (tactic/technique, pivot table, enrichment panels, carts).
+3. Use your OS screenshot tool.
+4. Save into `docs/screenshots/` using the filenames above.
 
-```bash
-npm init -y
-npm i -D playwright
-npx playwright install chromium
-```
+### Automated capture (optional)
 
-3. Create `tools/capture_screenshots.mjs`:
-
-```js
-import { chromium } from "playwright";
-import fs from "node:fs";
-
-const base = "http://127.0.0.1:8000/detect-mapper-browser.html?src=files/mitre_deteciton_map/detection_map.json";
-const outDir = "docs/screenshots";
-fs.mkdirSync(outDir, { recursive: true });
-
-const shots = [
-  { name: "01_loaded.png", url: base },
-  { name: "02_tactic_selected.png", url: base + "#t=x-mitre-tactic--78b23412-0651-46d7-a540-170a1ce8bd5a" },
-  {
-    name: "03_technique_details.png",
-    url: base + "#t=x-mitre-tactic--78b23412-0651-46d7-a540-170a1ce8bd5a&k=tech%3Aattack-pattern--3d333250-30e4-4a82-9edc-756c68afc529"
-  },
-];
-
-(async () => {
-  const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
-
-  for (const s of shots) {
-    await page.goto(s.url, { waitUntil: "networkidle" });
-    await page.waitForTimeout(1500);
-    await page.screenshot({ path: `${outDir}/${s.name}`, fullPage: true });
-    console.log("wrote", s.name);
-  }
-
-  await browser.close();
-})();
-```
-
-4. Run:
+If you’re using the Docker + Playwright runner (from the companion kit), you can re-run:
 
 ```bash
-node tools/capture_screenshots.mjs
+docker compose run --rm shots
 ```
 
-### Approach 2 — Manual OS screenshots
-
-1. Open the viewer (Option A or B above).
-2. Capture:
-   - loaded state
-   - a tactic selected
-   - a technique details view with pivot/enrichment visible
-3. Save as:
-   - `docs/screenshots/01_loaded.png`
-   - `docs/screenshots/02_tactic_selected.png`
-   - `docs/screenshots/03_technique_details.png`
-
----
-
-## Rebuilding the data assets (PowerShell)
-
-### Rebuild `detection_map.json` (MITRE ATT&CK Enterprise STIX → nested map)
-
-Scripts are under `files/mitre_deteciton_map/`.
-
-1. Download the Enterprise ATT&CK bundle:
-
-- `get-mitreEnterpriseData.ps1` downloads a pinned bundle to `c:\temp\enterprise_attack.json`.
-
-2. Build the nested detection map:
-
-- `build_detection_map.ps1` reads an `enterprise_attack.json` or `.zip` and emits `detection_map.json`.
-
-Example:
-
-```powershell
-# From files\mitre_deteciton_map\
-.\build_detection_map.ps1 -In c:\temp\enterprise_attack.json -Out .\detection_map.json
-```
-
-Optional flags:
-- `-IncludeRevokedDeprecated`
-- `-IncludeObjectFields`
-
-### Build a Sigma JSON pack
-
-`files/sigma_enrichment/Combine-SigmaRules.ps1` combines Sigma YAML rules into a single JSON “pack”.
-
-Requirements:
-- PowerShell 7+ recommended (parallel YAML parsing)
-- `powershell-yaml` module
-
-Example:
-
-```powershell
-Install-Module powershell-yaml -Scope CurrentUser
-.\Combine-SigmaRules.ps1 -InputPath .\sigma_all_rules.zip, .\sigma-master.zip -OutputDir .\out
-```
-
-### Build a Windows Event message catalog pack
-
-`files/windows_event_message_templates/get-providerMessages.ps1` enumerates provider metadata.
-
-Notes:
-- `#Requires -RunAsAdministrator`
-- The output is designed to match what Event Viewer / `Get-WinEvent` shows.
-
----
-
-## Repo layout
-
-```text
-MitreBrowser/
-  detect-mapper-browser.html
-  files/
-    mitre_deteciton_map/
-      detection_map.json
-      build_detection_map.ps1
-      get-mitreEnterpriseData.ps1
-      enterprise_attack.zip
-    sigma_enrichment/
-      sigma.combined.pack.json
-      Combine-SigmaRules.ps1
-      sigma-master.zip
-      sigma_all_rules.zip
-    windows_event_message_templates/
-      message.zip          # contains message.json
-      notemplate_message.json
-      get-providerMessages.ps1
-```
-
----
-
-## Notes / troubleshooting
-
-- **Large JSON**: use **Load JSON…** or drag&drop; pasting into the modal can be slow for multi-MB payloads.
-- **Auto-load** requires HTTP(s): `?src=...` uses `fetch()`, which browsers block for `file://` URLs.
-- **Nothing shows after loading**: confirm the JSON has the expected nested fields:
-  `tactics → techniques → x_mitre_detection_strategies → x_mitre_analytics → x_mitre_log_source_references`.
+and it will overwrite the images under `docs/screenshots/`.
