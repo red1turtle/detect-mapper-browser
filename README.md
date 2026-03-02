@@ -41,6 +41,66 @@ Use tactic and technique filters, global search, and object detail panes to trac
 - analytics
 - log source references
 
+
+## Screenshot previews for docs
+
+You can generate documentation-ready UI previews with the built-in sample archives in this repo.
+
+1. Extract sample JSON files from the bundled ZIP artifacts:
+
+```bash
+python - <<'PY2'
+import zipfile, pathlib
+out = pathlib.Path('.tmp_preview')
+out.mkdir(exist_ok=True)
+for z in [
+    'mitre_deteciton_map/detection_map.zip',
+    'sigma_enrichment/sigma.combined.pack.zip',
+    'windows_event_message_templates/message.zip',
+]:
+    with zipfile.ZipFile(z) as f:
+        f.extractall(out)
+print('Extracted into', out)
+PY2
+```
+
+2. Serve the repository root and open `detect-mapper-browser.html`:
+
+```bash
+python -m http.server 4173
+```
+
+3. Capture screenshots with your browser automation workflow and place PNG files under `docs/screenshots/`.
+
+Suggested scenarios and output names:
+
+- `docs/screenshots/preview-empty.png` — fresh UI before loading data.
+- `docs/screenshots/preview-loaded.png` — detection map loaded and a tactic selected.
+- `docs/screenshots/preview-enriched.png` — detection map + optional packs loaded.
+- `docs/screenshots/preview-winevent-enrichment.png` — technique details showing **Windows Event Enrichment** after loading `message.json`.
+- `docs/screenshots/preview-sysmon-snippet-modal.png` — **Sysmon refs/snippet helper** modal for a selected Event ID.
+- `docs/screenshots/preview-sysmon-cart-checkout.png` — **Sysmon snippet cart checkout** showing generated config output.
+- `docs/screenshots/preview-sigma-enrichment.png` — **Sigma Rule Enrichment** card with matched rules in the details pane.
+- `docs/screenshots/preview-sigma-cart.png` — **Sigma cart checkout** modal with YAML export.
+
+### Feature gallery (documentation-friendly)
+
+Use these image blocks in docs once screenshots are captured and saved with the filenames above.
+
+#### Windows Event enrichment
+
+![Windows Event enrichment card](docs/screenshots/preview-winevent-enrichment.png)
+
+#### Sysmon snippet workflow (refs → cart → checkout)
+
+![Sysmon snippet helper modal](docs/screenshots/preview-sysmon-snippet-modal.png)
+![Sysmon snippet cart checkout](docs/screenshots/preview-sysmon-cart-checkout.png)
+
+#### Sigma enrichment + cart
+
+![Sigma enrichment details panel](docs/screenshots/preview-sigma-enrichment.png)
+![Sigma cart checkout modal](docs/screenshots/preview-sigma-cart.png)
+
 ## Repository map
 
 - `detect-mapper-browser.html`: standalone viewer UI.
