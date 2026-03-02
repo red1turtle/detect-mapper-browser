@@ -34,13 +34,13 @@ These screenshots were captured from a real run of the viewer and map directly t
 
 ![Sysmon enrichment table (add to cart)](docs/screenshots/sysmon_added_to_cart.png)
 
-![Sysmon refs modal (snippets + cart)](docs/screenshots/family_sysmon_config_generator_ralated_references.png)
+![Sysmon refs modal (snippets + cart)](docs/screenshots/family_sysmon_config_generator_related_references.png)
 
 ![Sysmon cart checkout](docs/screenshots/checkout_sysmon_cart.png)
 
 ![Sigma enrichment (rules list)](docs/screenshots/sigmarule_added_to_cart.png)
 
-![Sigma rule detail + YAML payload](docs/screenshots/family_sigma_rulepack_generator_ralated_references.png)
+![Sigma rule detail + YAML payload](docs/screenshots/family_sigma_rulepack_generator_related_references.png)
 
 ![Sigma cart checkout](docs/screenshots/checkout_sigma_cart.png)
 
