@@ -15,14 +15,14 @@ log-source references like `WinEventLog:Security` or `EventCode=4688`.
    - `notemplate_message.zip`
    - `allprovider_notemplate_message.zip`
 
-<a href="../docs/screenshots/load_winmessages.png?raw=1">
-  <img src="../docs/screenshots/load_winmessages.png?raw=1" width="640"/>
+<a href="../docs/screenshots/load_winmessages.png">
+  <img src="../docs/screenshots/load_winmessages.png" width="640"/>
 </a>
 
 After loading, expand **Windows Event Enrichment** under a technique/strategy to see resolved entries:
 
-<a href="../docs/screenshots/family_detect_winEID_strats.png?raw=1">
-  <img src="../docs/screenshots/family_detect_winEID_strats.png?raw=1" width="900"/>
+<a href="../docs/screenshots/family_detect_winEID_strats.png">
+  <img src="../docs/screenshots/family_detect_winEID_strats.png" width="900"/>
 </a>
 
 ---
