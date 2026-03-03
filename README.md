@@ -32,6 +32,8 @@ docker run --rm -p 8080:80 -v "$PWD":/usr/share/nginx/html:ro nginx:alpine
 
 Open: http://localhost:8080/detect-mapper-browser.html
 
+### 2) or just launch the page in your favorite browser and go from there
+
 ---
 
 ## Load the detection map
