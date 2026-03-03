@@ -1,45 +1,59 @@
-# Windows Event Message Templates
+# Windows Event message templates (WinEvent enrichment)
 
-This folder contains tooling and data snapshots for extracting Windows event provider metadata (event IDs, templates, and message text).
+This folder contains tooling and snapshot packs for extracting Windows Event provider metadata
+(Event IDs, providers, templates, and message text). The browser can load these packs to enrich
+log-source references like `WinEventLog:Security` or `EventCode=4688`.
 
-## Files
+---
 
-- `get-providerMessages.ps1`: exports provider event metadata objects.
-- `message.zip`, `notemplate_message.zip`, `allprovider_notemplate_message.zip`: output packs/snapshots.
+## Use in the browser
 
-## What `get-providerMessages.ps1` exports
+1. Open the viewer and load your detection map JSON.
+2. Click **WinEvent Pack…**
+3. Load one of the snapshot packs (unzipped JSON inside):
+   - `message.zip` (contains `message.json`)
+   - `notemplate_message.zip`
+   - `allprovider_notemplate_message.zip`
 
-For each provider event, the script captures:
+<a href="../docs/screenshots/load_winmessages.png">
+  <img src="../docs/screenshots/load_winmessages.png" width="640"/>
+</a>
 
-- normalized `id` (low 16-bit event ID)
+After loading, expand **Windows Event Enrichment** under a technique/strategy to see resolved entries:
+
+<a href="../docs/screenshots/family_detect_winEID_strats.png">
+  <img src="../docs/screenshots/family_detect_winEID_strats.png" width="900"/>
+</a>
+
+---
+
+## Build the message catalog yourself (Windows only)
+
+Script: `get-providerMessages.ps1`
+
+What it exports per provider event:
+- normalized 16-bit `id`
 - full `event_identifier` (32-bit)
 - `qualifiers`
 - `description`, `template`, level/task/opcode/keywords
 - provider/source labels
 - deterministic `template_hash`
 
-It can enumerate:
-
-- classic EventLog registry providers (default), or
-- all registered providers (`-AllProviders`).
-
-It can also include events without XML templates (`-IncludeNoTemplate`).
-
-## How to run
-
+Example:
 ```powershell
-# run elevated
+# Run elevated (recommended)
 pwsh ./windows_event_message_templates/get-providerMessages.ps1 |
   ConvertTo-Json -Depth 8 |
-  Set-Content ./windows_event_message_templates/provider_messages.json
+  Set-Content ./windows_event_message_templates/message.json
 ```
+
+Optional behavior (script flags):
+- enumerate all registered providers (`-AllProviders`)
+- include events without XML templates (`-IncludeNoTemplate`)
+
+---
 
 ## Notes
 
-- Script uses .NET `ProviderMetadata` APIs and requires Windows.
-- Error rows are returned as structured objects per provider, not silently dropped.
-
-## References
-
-- Event provider metadata APIs: <https://learn.microsoft.com/windows/win32/wes/eventschema-elements>
-- PowerShell `Get-WinEvent`: <https://learn.microsoft.com/powershell/module/microsoft.powershell.diagnostics/get-winevent>
+- Uses .NET `ProviderMetadata` APIs → **requires Windows**.
+- For large provider sets, JSON output can be big; prefer ZIP for distribution.

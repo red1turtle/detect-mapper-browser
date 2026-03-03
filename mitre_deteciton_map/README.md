@@ -1,51 +1,67 @@
-# MITRE Detection Map
+# MITRE detection map
 
-This folder contains scripts and artifacts for turning MITRE ATT&CK Enterprise STIX data into a nested detection map JSON consumed by the browser UI.
+This folder contains scripts and snapshots for turning **MITRE ATT&CK Enterprise STIX** into the nested *detection map JSON* consumed by the browser UI.
 
-## Files
+If you just want to *use* the viewer, you can start with the snapshot:
+- `detection_map.zip` → `detection_map.json`
 
-- `get-mitreEnterpriseData.ps1`: downloads ATT&CK enterprise JSON into `C:\temp\enterprise_attack.json`.
-- `build_detection_map.ps1`: builds the detection map JSON from a STIX JSON or ZIP bundle.
-- `enterprise_attack.zip`: ATT&CK enterprise bundle archive (input option).
-- `detection_map.zip`, `detection_map_dep.zip`: packaged map outputs/snapshots.
+If you want to *regenerate* the map (new ATT&CK release, include extra fields, include revoked/deprecated), use the PowerShell scripts.
 
-## Data model built by `build_detection_map.ps1`
+---
 
-Output shape:
+## Outputs
 
-- tactic
-  - technique
-    - sub-technique
-    - `x_mitre_detection_strategies`
-      - `x_mitre_analytics`
-        - `x_mitre_log_source_references`
+- `detection_map.json` (generated) — the file loaded by `detect-mapper-browser.html`
+- `detection_map.zip` — snapshot packaging of the JSON
+- `detection_map_dep.zip` — snapshot that includes revoked/deprecated objects (if built that way)
 
-Relationships resolved:
+The generated JSON forms this hierarchy:
 
-- `subtechnique-of`: links sub-techniques to parent techniques.
-- `detects`: links detection strategies to techniques/sub-techniques.
+**TACTIC → TECHNIQUE → SUB-TECHNIQUE → Detection Strategies → Analytics → Log Source References**
 
-## How to run
+---
+
+## Build / regenerate the detection map
+
+### 1) Get the ATT&CK Enterprise STIX bundle
+
+Option A — download a pinned version via the helper script:
+```powershell
+pwsh ./mitre_deteciton_map/get-mitreEnterpriseData.ps1
+# writes: .\enterprise_attack.json  (script uses C:\temp as a working dir)
+```
+
+Option B — use the included snapshot:
+- `enterprise_attack.zip`
+
+### 2) Build the detection map JSON
 
 ```powershell
-pwsh ./mitre_deteciton_map/build_detection_map.ps1 \
-  -In ./mitre_deteciton_map/enterprise_attack.zip \
-  -Out ./mitre_deteciton_map/detection_map.json \
+pwsh ./mitre_deteciton_map/build_detection_map.ps1 `
+  -In  ./mitre_deteciton_map/enterprise_attack.zip `
+  -Out ./mitre_deteciton_map/detection_map.json `
   -IncludeObjectFields
 ```
 
-Useful flags:
+Useful switches:
+- `-IncludeObjectFields` — pass through descriptions, platforms, detection text, and add convenience `url` fields.
+- `-IncludeRevokedDeprecated` — include revoked / deprecated objects (default is excluded).
 
-- `-IncludeRevokedDeprecated`: includes revoked/deprecated STIX objects.
-- `-IncludeObjectFields`: passes through extra descriptive ATT&CK fields.
+### 3) Load it in the browser
 
-## Notes
+Serve the repo and open:
 
-- Input can be either plain JSON or ZIP with one JSON file.
-- Script enforces strict mode and fails fast on malformed bundles.
-- Final output is JSON, intended for direct loading in `detect-mapper-browser.html`.
+```
+http://localhost:8080/detect-mapper-browser.html?src=mitre_deteciton_map/detection_map.json
+```
 
-## References
+<a href="../docs/screenshots/loaded_detection_map.png">
+  <img src="../docs/screenshots/loaded_detection_map.png" width="900"/>
+</a>
 
-- ATT&CK STIX data repo: <https://github.com/mitre-attack/attack-stix-data>
-- ATT&CK website: <https://attack.mitre.org/>
+---
+
+## Notes / troubleshooting
+
+- The build script reads `enterprise_attack.json` directly **or** a ZIP containing a single JSON bundle.
+- If your output is missing extra fields, ensure you used `-IncludeObjectFields` (it is off by default).

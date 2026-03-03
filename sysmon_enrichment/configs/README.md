@@ -1,21 +1,19 @@
-# Sysmon Configs
+# Sysmon baseline configs
 
-This directory contains exported Sysmon configuration snapshots and URL shortcuts to upstream baselines.
+This folder stores **reference links and exports** for common baseline Sysmon configurations:
 
-## Files
+- **Ion-Storm** baseline
+- **SwiftOnSecurity** baseline
 
-- `ion-strom_sysmonconfig-export.xml`: Ion-Storm baseline export.
-- `swiftonsecurity_sysmonconfig-export.xml`: SwiftOnSecurity baseline export.
-- `ion-storm - sysmon-config.url`: source URL pointer.
-- `SwiftOnSecurity - sysmon-config.url`: source URL pointer.
+The viewer’s Sysmon enrichment uses these baselines to:
+- show “mentions” counts per Event ID / EventType
+- generate copyable snippets per baseline
+- assemble cart checkouts (wrapped Sysmon config)
 
-## How-to compare configs
+Files of interest:
+- `ion-strom_sysmonconfig-export.xml`
+- `swiftonsecurity_sysmonconfig-export.xml`
 
-1. Parse both XML files and compare enabled event groups.
-2. Compare included fields/rules by event ID (e.g., Event ID 1 ProcessCreate).
-3. Use differences to guide telemetry tuning for your environment.
-
-## Shoutouts
-
-- Ion-Storm maintainers.
-- SwiftOnSecurity maintainers.
+If you update these exports, re-run your screenshots and validate:
+- “mentions” counts still line up
+- snippet rendering still produces valid XML
