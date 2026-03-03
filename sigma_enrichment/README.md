@@ -11,31 +11,31 @@ MITRE context (technique, sub-technique, strategy, analytic). You can then add r
 1. Load a detection map JSON in the viewer.
 2. Click **Sigma Pack…** and load a combined pack JSON (typically `sigma.combined.pack.json`).
 
-<a href="../docs/screenshots/load_sigmarules.png">
-  <img src="../docs/screenshots/load_sigmarules.png" width="520"/>
+<a href="../docs/screenshots/load_sigmarules.png?raw=1">
+  <img src="../docs/screenshots/load_sigmarules.png?raw=1" width="520"/>
 </a>
 
 3. Navigate to a technique and expand **Sigma Rule Enrichment**.
 4. Click **Add** on a rule to add it to the cart.
 
-<a href="../docs/screenshots/sigmarule_added_to_cart.png">
-  <img src="../docs/screenshots/sigmarule_added_to_cart.png" width="900"/>
+<a href="../docs/screenshots/sigmarule_added_to_cart.png?raw=1">
+  <img src="../docs/screenshots/sigmarule_added_to_cart.png?raw=1" width="900"/>
 </a>
 
 ### Checkout / export
 
 Open the Sigma cart and export:
 
-<a href="../docs/screenshots/checkout_sigma_cart.png">
-  <img src="../docs/screenshots/checkout_sigma_cart.png" width="900"/>
+<a href="../docs/screenshots/checkout_sigma_cart.png?raw=1">
+  <img src="../docs/screenshots/checkout_sigma_cart.png?raw=1" width="900"/>
 </a>
 
 ### Reference drill-down
 
 Rules and exports preserve MITRE context and related references:
 
-<a href="../docs/screenshots/family_sigma_rulepack_generator_related_references.png">
-  <img src="../docs/screenshots/family_sigma_rulepack_generator_related_references.png" width="900"/>
+<a href="../docs/screenshots/family_sigma_rulepack_generator_related_references.png?raw=1">
+  <img src="../docs/screenshots/family_sigma_rulepack_generator_related_references.png?raw=1" width="900"/>
 </a>
 
 ---
