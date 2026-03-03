@@ -52,8 +52,8 @@ http://localhost:8080/detect-mapper-browser.html?src=mitre_deteciton_map/detecti
 ### Option B — Manual load
 Click **Load JSON…** and pick a detection map JSON.
 
-<a href="docs/screenshots/loaded_detection_map.png">
-  <img src="docs/screenshots/loaded_detection_map.png" width="980" />
+<a href="docs/screenshots/loaded_detection_map.png?raw=1">
+  <img src="docs/screenshots/loaded_detection_map.png?raw=1" width="980" />
 </a>
 
 ---
@@ -95,9 +95,9 @@ The browser works with *just* the detection map. Everything below is optional, b
     </td>
   </tr>
   <tr>
-    <td><a href="docs/screenshots/load_winmessages.png"><img src="docs/screenshots/load_winmessages.png" width="320"/></a></td>
-    <td><a href="docs/screenshots/sysmon_added_to_cart.png"><img src="docs/screenshots/sysmon_added_to_cart.png" width="320"/></a></td>
-    <td><a href="docs/screenshots/sigmarule_added_to_cart.png"><img src="docs/screenshots/sigmarule_added_to_cart.png" width="320"/></a></td>
+    <td><a href="docs/screenshots/load_winmessages.png?raw=1"><img src="docs/screenshots/load_winmessages.png?raw=1" width="320"/></a></td>
+    <td><a href="docs/screenshots/sysmon_added_to_cart.png?raw=1"><img src="docs/screenshots/sysmon_added_to_cart.png?raw=1" width="320"/></a></td>
+    <td><a href="docs/screenshots/sigmarule_added_to_cart.png?raw=1"><img src="docs/screenshots/sigmarule_added_to_cart.png?raw=1" width="320"/></a></td>
   </tr>
 </table>
 
@@ -119,31 +119,31 @@ The browser works with *just* the detection map. Everything below is optional, b
 <details>
   <summary><b>Techniques, strategies, analytics, and pivots</b></summary>
 
-  <a href="docs/screenshots/detection_strtegies_and_analytics.png">
-    <img src="docs/screenshots/detection_strtegies_and_analytics.png" width="980"/>
+  <a href="docs/screenshots/detection_strtegies_and_analytics.png?raw=1">
+    <img src="docs/screenshots/detection_strtegies_and_analytics.png?raw=1" width="980"/>
   </a>
 
-  <a href="docs/screenshots/logsources_linked_info.png">
-    <img src="docs/screenshots/logsources_linked_info.png" width="980"/>
+  <a href="docs/screenshots/logsources_linked_info.png?raw=1">
+    <img src="docs/screenshots/logsources_linked_info.png?raw=1" width="980"/>
   </a>
 </details>
 
 <details>
   <summary><b>Technique scope views (family vs this item)</b></summary>
 
-  <a href="docs/screenshots/family_oriented.png">
-    <img src="docs/screenshots/family_oriented.png" width="980"/>
+  <a href="docs/screenshots/family_oriented.png?raw=1">
+    <img src="docs/screenshots/family_oriented.png?raw=1" width="980"/>
   </a>
 
-  <a href="docs/screenshots/selffocused.png">
-    <img src="docs/screenshots/selffocused.png" width="980"/>
+  <a href="docs/screenshots/selffocused.png?raw=1">
+    <img src="docs/screenshots/selffocused.png?raw=1" width="980"/>
   </a>
 
-  <a href="docs/screenshots/familyfocused_options.png">
-    <img src="docs/screenshots/familyfocused_options.png" width="980"/>
+  <a href="docs/screenshots/familyfocused_options.png?raw=1">
+    <img src="docs/screenshots/familyfocused_options.png?raw=1" width="980"/>
   </a>
 
-  <a href="docs/screenshots/selffocused_options.png">
-    <img src="docs/screenshots/selffocused_options.png" width="980"/>
+  <a href="docs/screenshots/selffocused_options.png?raw=1">
+    <img src="docs/screenshots/selffocused_options.png?raw=1" width="980"/>
   </a>
 </details>

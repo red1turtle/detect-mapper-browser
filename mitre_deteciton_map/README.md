@@ -55,8 +55,8 @@ Serve the repo and open:
 http://localhost:8080/detect-mapper-browser.html?src=mitre_deteciton_map/detection_map.json
 ```
 
-<a href="../docs/screenshots/loaded_detection_map.png">
-  <img src="../docs/screenshots/loaded_detection_map.png" width="900"/>
+<a href="../docs/screenshots/loaded_detection_map.png?raw=1">
+  <img src="../docs/screenshots/loaded_detection_map.png?raw=1" width="900"/>
 </a>
 
 ---
