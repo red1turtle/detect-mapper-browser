@@ -201,7 +201,7 @@ Features:
 
 ![Sigma Rule Enrichment (rules list)](docs/screenshots/sigmarule_added_to_cart.png)
 
-![Sigma rule detail + YAML payload](docs/screenshots/family_sigma_rulepack_generator_ralated_references.png)
+![Sigma rule detail + YAML payload](docs/screenshots/family_sigma_rulepack_generator_related_references.png)
 
 ![Sigma cart checkout](docs/screenshots/checkout_sigma_cart.png)
 
