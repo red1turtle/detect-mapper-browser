@@ -12,10 +12,6 @@ Relationship traversal:
 
 Techniques include their sub-techniques (attack-pattern where x_mitre_is_subtechnique == $true).
 
-NOTE (important): v4's field pass-through used a typed [hashtable] parameter which caused OrderedDictionary
-nodes ([ordered]@{}) to be copied by value in some PowerShell builds—so extra fields never landed in the output.
-v5 fixes this by writing to an IDictionary directly.
-
 .PARAMETER In
 Path to enterprise_attack.json OR enterprise_attack.zip (containing a single JSON bundle).
 
@@ -26,11 +22,14 @@ Output JSON path for the detection map.
 Include revoked/x_mitre_deprecated objects. Default: excluded.
 
 .PARAMETER IncludeObjectFields
-Pass-through extra fields from the underlying STIX objects:
-  - Techniques/Sub-techniques: description, x_mitre_platforms, x_mitre_detection, kill_chain_phases, etc.
-  - Detection strategies: description
-  - Analytics: description, x_mitre_platforms, x_mitre_mutable_elements
-Also adds a convenience 'url' (from mitre-attack external reference) to tactic/technique/strategy/analytic nodes when present.
+Pass-through extra fields from technique/strategy/analytic STIX objects (description/platforms/etc).
+
+.PARAMETER IncludeDataComponentDetails
+Enrich analytics/log-source references with data-component identity fields, and add a top-level
+"data_components" array containing full data-component records (and their referenced data-source details).
+
+This keeps the per-analytic log-source references lightweight while still capturing rich data-component data.
+
 #>
 
 [CmdletBinding()]
@@ -43,7 +42,9 @@ param(
 
   [switch]$IncludeRevokedDeprecated,
 
-  [switch]$IncludeObjectFields
+  [switch]$IncludeObjectFields,
+
+  [switch]$IncludeDataComponentDetails
 )
 
 Set-StrictMode -Version Latest
@@ -54,7 +55,7 @@ function HasProp { param($Obj,[string]$Name) return ($null -ne $Obj.PSObject.Pro
 function Get-Mitref {
   param($Obj)
   if (-not (HasProp $Obj 'external_references')) { return $null }
-  foreach ($er in $Obj.external_references) {
+  foreach ($er in @($Obj.external_references)) {
     if ($er.source_name -eq 'mitre-attack' -and $er.external_id) { return [string]$er.external_id }
   }
   return $null
@@ -63,7 +64,7 @@ function Get-Mitref {
 function Get-MitUrl {
   param($Obj)
   if (-not (HasProp $Obj 'external_references')) { return $null }
-  foreach ($er in $Obj.external_references) {
+  foreach ($er in @($Obj.external_references)) {
     if ($er.source_name -eq 'mitre-attack' -and $er.url) { return [string]$er.url }
   }
   return $null
@@ -121,6 +122,10 @@ foreach ($o in $bundle.objects) {
 $byId = @{}
 foreach ($o in $objects) { $byId[[string]$o.id] = $o }
 
+# Used sets for enrichment
+$dataComponentUsed = @{}  # dc_id -> $true
+$dataSourceUsed = @{}     # ds_id -> $true
+
 # -------------------- Classify objects --------------------
 $tactics = $objects | Where-Object { $_.type -eq 'x-mitre-tactic' }
 $attackPatterns = $objects | Where-Object { $_.type -eq 'attack-pattern' }
@@ -161,6 +166,61 @@ foreach ($t in $parentTechniques) {
   }
 }
 
+# -------------------- Data component builders --------------------
+function Build-DataSourceDetails {
+  param([string]$DataSourceId)
+  if ([string]::IsNullOrWhiteSpace($DataSourceId)) { return $null }
+  if (-not $byId.ContainsKey($DataSourceId)) { return $null }
+  $ds = $byId[$DataSourceId]
+  if ($ds.type -ne 'x-mitre-data-source') { return $null }
+
+  $node = [ordered]@{
+    id = [string]$ds.id
+    external_id = (Get-Mitref $ds)
+    url = (Get-MitUrl $ds)
+    name = [string]$ds.name
+  }
+  Copy-IfPresent $ds $node @('description','x_mitre_platforms','x_mitre_collection_layers','x_mitre_domains','x_mitre_version','x_mitre_attack_spec_version','x_mitre_deprecated')
+  return [pscustomobject]$node
+}
+
+function Build-DataComponentDetails {
+  param([string]$DataComponentId)
+  if ([string]::IsNullOrWhiteSpace($DataComponentId)) { return $null }
+  if (-not $byId.ContainsKey($DataComponentId)) { return $null }
+  $dc = $byId[$DataComponentId]
+  if ($dc.type -ne 'x-mitre-data-component') { return $null }
+
+  $node = [ordered]@{
+    id = [string]$dc.id
+    external_id = (Get-Mitref $dc)
+    url = (Get-MitUrl $dc)
+    name = [string]$dc.name
+    x_mitre_data_source_ref = $null
+    data_source = $null
+  }
+  Copy-IfPresent $dc $node @(
+    'description',
+    'x_mitre_log_sources',
+    'x_mitre_domains',
+    'x_mitre_version',
+    'x_mitre_attack_spec_version',
+    'x_mitre_deprecated',
+    'revoked',
+    'spec_version'
+  )
+
+  if (HasProp $dc 'x_mitre_data_source_ref') {
+    $dsid = [string]$dc.x_mitre_data_source_ref
+    $node.x_mitre_data_source_ref = $dsid
+    if (-not [string]::IsNullOrWhiteSpace($dsid)) {
+      $dataSourceUsed[$dsid] = $true
+      $node.data_source = Build-DataSourceDetails -DataSourceId $dsid
+    }
+  }
+  return [pscustomobject]$node
+}
+
 # -------------------- Node builders --------------------
 function Build-AnalyticNode {
   param($AnalyticId)
@@ -170,19 +230,52 @@ function Build-AnalyticNode {
   $a = $byId[$aid]
   if ($a.type -ne 'x-mitre-analytic') { return $null }
 
+  # log source references (optionally enriched with data-component identity)
+  $lsOut = @()
+  if (HasProp $a 'x_mitre_log_source_references') {
+    foreach ($lsr in @($a.x_mitre_log_source_references)) {
+      # start with a shallow copy
+      $h = [ordered]@{}
+      foreach ($p in $lsr.PSObject.Properties) { $h[$p.Name] = $p.Value }
+
+      if ($IncludeDataComponentDetails -and (HasProp $lsr 'x_mitre_data_component_ref')) {
+        $dcid = [string]$lsr.x_mitre_data_component_ref
+        if (-not [string]::IsNullOrWhiteSpace($dcid)) {
+          $dataComponentUsed[$dcid] = $true
+          if ($byId.ContainsKey($dcid) -and $byId[$dcid].type -eq 'x-mitre-data-component') {
+            $dcObj = $byId[$dcid]
+            $h['data_component_external_id'] = (Get-Mitref $dcObj)
+            $h['data_component_name'] = [string]$dcObj.name
+            if (HasProp $dcObj 'x_mitre_data_source_ref') {
+              $dsid = [string]$dcObj.x_mitre_data_source_ref
+              if (-not [string]::IsNullOrWhiteSpace($dsid) -and $byId.ContainsKey($dsid)) {
+                $dsObj = $byId[$dsid]
+                if ($dsObj.type -eq 'x-mitre-data-source') {
+                  $h['data_source_external_id'] = (Get-Mitref $dsObj)
+                  $h['data_source_name'] = [string]$dsObj.name
+                }
+              }
+            }
+          }
+        }
+      }
+
+      $lsOut += [pscustomobject]$h
+    }
+  }
+
   $node = [ordered]@{
     id = [string]$a.id
     external_id = (Get-Mitref $a)
     url = (Get-MitUrl $a)
     name = [string]$a.name
-    x_mitre_log_source_references = @()
+    x_mitre_log_source_references = @($lsOut)
   }
 
   if ($IncludeObjectFields) {
     Copy-IfPresent $a $node @('description','x_mitre_platforms','x_mitre_mutable_elements')
   }
 
-  if (HasProp $a 'x_mitre_log_source_references') { $node.x_mitre_log_source_references = @($a.x_mitre_log_source_references) }
   return [pscustomobject]$node
 }
 
@@ -305,13 +398,24 @@ $outObj = [ordered]@{
     input = (Resolve-Path -LiteralPath $In).Path
     include_revoked_deprecated = [bool]$IncludeRevokedDeprecated
     include_object_fields = [bool]$IncludeObjectFields
+    include_data_component_details = [bool]$IncludeDataComponentDetails
   }
   tactics = @($tacticNodes)
+}
+
+if ($IncludeDataComponentDetails) {
+  # build data_components array (referenced only)
+  $dcNodes = @()
+  foreach ($dcid in ($dataComponentUsed.Keys | Sort-Object)) {
+    $n = Build-DataComponentDetails -DataComponentId $dcid
+    if ($null -ne $n) { $dcNodes += $n }
+  }
+  $outObj.data_components = @($dcNodes)
 }
 
 $dir = Split-Path -Parent $Out
 if ($dir -and -not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir | Out-Null }
 
-$outJson = $outObj | ConvertTo-Json -Depth 60
+$outJson = $outObj | ConvertTo-Json -Depth 70
 Set-Content -LiteralPath $Out -Value $outJson -Encoding UTF8
 Write-Host "Wrote detection map to: $Out"
