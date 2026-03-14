@@ -378,6 +378,8 @@
   .kv .v{font-size:13px;}
   .monoWrap{white-space:pre-wrap; word-break:break-word;}
 
+
+  .flash{ outline: 2px solid var(--accent); outline-offset: 3px; box-shadow: 0 0 0 4px rgba(94,234,212,.12); border-radius: 14px; }
 </style>
 </head>
 <body>
@@ -521,6 +523,8 @@
   const state = {
     data: null,
     tactics: [],
+    dataComponents: [],
+    dataComponentIndex: new Map(), // id -> root data component
     // selection
     selectedTacticId: null,
     selectedTechKey: null, // "tech:<id>" or "sub:<parentId>:<subId>"
@@ -1232,7 +1236,7 @@ function buildWin11EventIndex(){
       'unfiltered = no explicit filter rules for that event type.'
     );
 
-    return el('details', {open:true},
+    return el('details', {open:true, id: 'sysmon-enrichment'},
       header,
       el('div', {class:'detail'},
         prof,
@@ -1400,6 +1404,9 @@ function buildWin11EventIndex(){
     state.selectedObject = null;
     state.rollups.clear();
 
+    buildDataComponentIndex(obj);
+    hydrateLogRefsWithDataComponents();
+
     $('#dropZone').style.display = 'none';
     $('#tacticFilters').style.display = '';
     $('#techFilters').style.display = '';
@@ -1409,6 +1416,43 @@ function buildWin11EventIndex(){
     updateMeta();
     restoreFromHash();
   }
+
+  function buildDataComponentIndex(obj){
+    const arr = asArray(obj?.data_components || obj?.dataComponents || []);
+    state.dataComponents = arr;
+    const idx = new Map();
+    for (const dc of arr){
+      const id = (dc?.id || dc?.x_mitre_data_component_ref || '').toString();
+      if (!id) continue;
+      idx.set(id, dc);
+    }
+    state.dataComponentIndex = idx;
+  }
+
+  function hydrateLogRefsWithDataComponents(){
+    const idx = state.dataComponentIndex;
+    if (!idx || !idx.size) return;
+
+    for (const t of asArray(state.data?.tactics)){
+      for (const tech of asArray(t?.techniques)){
+        for (const s of asArray(tech?.x_mitre_detection_strategies)){
+          for (const a of asArray(s?.x_mitre_analytics)){
+            for (const l of asArray(a?.x_mitre_log_source_references)){
+              const ref = (l?.x_mitre_data_component_ref || '').toString();
+              if (!ref) continue;
+              const dc = idx.get(ref);
+              if (!dc) continue;
+              l._data_component = dc;
+              l.data_component_external_id = dc.external_id || dc.externalId || l.data_component_external_id || '';
+              l.data_component_name = dc.name || dc.data_component_name || l.data_component_name || '';
+              l.description = dc.description || dc.data_component_description || l.description || '';
+            }
+          }
+        }
+      }
+    }
+  }
+
 
   async function loadFromFile(file){
     const text = await file.text();
@@ -1558,15 +1602,32 @@ function buildWin11EventIndex(){
               tech.external_id, tech.name,
               s.external_id, s.name,
               a.external_id, a.name,
-              l.x_mitre_data_component_ref, l.name, l.channel
+              l.x_mitre_data_component_ref, l.data_component_external_id, l.data_component_name, l.name, l.channel
             ].map(safeLower),
             { tacticId: tactic.id, techId: tech.id, isSub: !!isSub, parentId: parent?.id, strategyId: s.id, analyticId: a.id, logRef: l.x_mitre_data_component_ref, logName: l.name, logChannel: l.channel },
-            [tactic.external_id, tech.external_id, s.external_id, a.external_id, l.x_mitre_data_component_ref]
+            [tactic.external_id, tech.external_id, s.external_id, a.external_id, l.data_component_external_id, l.data_component_name, l.x_mitre_data_component_ref]
           );
         }
       }
     }
   }
+    // Root data components (new schema)
+    for (const dc of asArray(state.data?.data_components || state.data?.dataComponents)){
+      const id = (dc?.id || '').toString();
+      const ext = (dc?.external_id || '').toString();
+      const nm = (dc?.name || '').toString();
+      const ds = (dc?.data_source || dc?.dataSource || '').toString();
+      const desc = (dc?.description || '').toString();
+      if (!id && !ext && !nm) continue;
+      addIndex(
+        'data_component',
+        `${ext || id} — ${nm}`,
+        [id, ext, nm, ds, desc].map(safeLower),
+        { dataComponentId: id, dataComponentExt: ext, dataComponentName: nm },
+        [ext, id]
+      );
+    }
+
 
   /** -----------------------------
    *  Rendering: tactics
@@ -1716,6 +1777,19 @@ function buildWin11EventIndex(){
     });
 
     // Progressive render for large lists
+    // Ensure selection is valid and render details early (avoid waiting for full list render)
+    const hasKeyInList = (k) => !!flat.find(x => x.key === k);
+    if (state.selectedTechKey && !hasKeyInList(state.selectedTechKey)){
+      state.selectedTechKey = null;
+      state.selectedObject = null;
+    }
+    if (!state.selectedTechKey && flat.length){
+      state.selectedTechKey = flat[0].key;
+      state.selectedObject = findTechniqueByKey(flat[0].key);
+      renderDetails(state.selectedObject);
+      pushHash({tacticId: state.selectedTacticId, techKey: flat[0].key});
+    }
+
     const chunkSize = 160;
     let i = 0;
     const renderChunk = () => {
@@ -1755,10 +1829,6 @@ function buildWin11EventIndex(){
         requestAnimationFrame(renderChunk);
       } else {
         $('#techHint').textContent = `Showing ${fmtInt(flat.length)} item(s) in ${tactic.external_id || ''} ${tactic.name || ''}`.trim();
-        // auto-select first if none selected
-        if (!state.selectedTechKey && flat.length){
-          selectTechnique(flat[0].key);
-        }
       }
     };
     renderChunk();
@@ -1791,7 +1861,13 @@ function buildWin11EventIndex(){
     // Default details scope: show technique family (parent + siblings) for techniques/sub-techniques
     state.detailsScope = (entry?.kind === 'tech' || entry?.kind === 'sub') ? 'family' : 'object';
     renderTechniques(); // update active state
-    renderDetails(entry);
+    try{
+      renderDetails(entry);
+    }catch(err){
+      console.error(err);
+      toast('Details render failed: ' + (err?.message || err));
+      renderDetailsEmpty();
+    }
     pushHash({tacticId: state.selectedTacticId, techKey: key});
   }
 
@@ -1809,6 +1885,33 @@ function buildWin11EventIndex(){
       () => toast('Copy failed (clipboard permission)')
     );
   }
+
+
+  function slugId(s){
+    return (s||'').toString().replace(/[^a-zA-Z0-9_-]/g,'_');
+  }
+  function strategyDomId(sid){ return 'strategy-' + slugId(sid); }
+  function dcDomId(key){ return 'dc-' + slugId(key); }
+
+  function flashEl(node){
+    if (!node) return;
+    node.classList.add('flash');
+    setTimeout(()=>node.classList.remove('flash'), 1200);
+  }
+
+  function jumpToId(id, {openDetails=true} = {}){
+    const node = document.getElementById(id);
+    if (!node){ toast('Target not found'); return; }
+    if (openDetails && node.tagName && node.tagName.toLowerCase()==='details') node.open = true;
+    node.scrollIntoView({behavior:'smooth', block:'start'});
+    flashEl(node);
+  }
+
+  function jumpToStrategy(sid){
+    if (!sid) return;
+    jumpToId(strategyDomId(sid), {openDetails:true});
+  }
+
 
   function idChip(id){
     return el('span', {class:'chip', title:'Click to copy', onclick:() => copyText(id)}, el('span', {class:'dot'}), el('code', {}, id));
@@ -1948,7 +2051,7 @@ function buildWin11EventIndex(){
         ...strategiesForDisplay
           .filter(s => s && (s.external_id || s.id))
           .slice(0, 18)
-          .map(s => el('span', {class:'chip', title:'Detection strategy ID (click to copy)', onclick:() => copyText(s.external_id || s.id)}, el('code', {class:'mono'}, s.external_id || s.id)))
+          .map(s => el('a', {href:'#', class:'chip', title:'Jump to strategy card', onclick:(e)=>{e.preventDefault(); jumpToStrategy(s.external_id || s.id);} }, el('code', {class:'mono'}, s.external_id || s.id)))
       )
     );
 
@@ -2064,6 +2167,9 @@ function buildWin11EventIndex(){
         name: logRef?.name || '',
         channel: logRef?.channel || '',
         ref: logRef?.x_mitre_data_component_ref || '',
+        dcExt: (logRef?.data_component_external_id || '').toString(),
+        dcName: (logRef?.data_component_name || '').toString(),
+        dcDesc: (logRef?.description || '').toString(),
         platforms: asArray(analytic?.x_mitre_platforms || analytic?.platforms || analytic?.platform).join(', ')
       });
     };
@@ -2133,7 +2239,7 @@ function buildWin11EventIndex(){
             }}, 'Copy unique LogSource:Channel')
           ),
           table(
-            ['Tactic','Technique','Strategy','Analytic','Platforms','Log source','Channel','Data component ref'],
+            ['Tactic','Technique','Strategy','Analytic','Platforms','Log source','Channel','DC','Data component'],
             logRows.map(rw => [
               rw.tacticExt ? el('a', {href:'#', class:'mono', onclick:(e)=>{e.preventDefault(); openSearchOverlay(rw.tacticExt);} }, rw.tacticExt) : '—',
               rw.techKey ? el('a', {href:'#', class:'mono', onclick:(e)=>{e.preventDefault(); selectTechnique(rw.techKey);} }, (rw.techExt || rw.techKey)) : (rw.techExt || '—'),
@@ -2142,7 +2248,12 @@ function buildWin11EventIndex(){
               el('span', {class:'truncate', title:rw.platforms || ''}, rw.platforms || '—'),
               el('span', {class:'truncate', title:rw.name}, rw.name),
               renderChannelWithWinEvents(rw.name, rw.channel),
-              rw.ref ? el('a', {href:'#', class:'mono', onclick:(e)=>{e.preventDefault(); copyText(rw.ref);} }, rw.ref) : '—'
+              rw.dcExt
+                ? el('span', {class:'chip', title:(rw.dcName||'Data component') + ' (click to copy DC id)', onclick:()=>copyText(rw.dcExt)}, el('code',{class:'mono'}, rw.dcExt))
+                : '—',
+              (rw.dcExt || rw.dcName)
+                ? el('span', {class:'truncate', title:(rw.dcDesc||rw.dcName||'') + (rw.ref ? '\nref: ' + rw.ref : ''), onclick:()=>{ if(rw.ref) copyText(rw.ref);} }, rw.dcName || '—')
+                : (rw.ref ? el('a', {href:'#', class:'mono', onclick:(e)=>{e.preventDefault(); copyText(rw.ref);} }, rw.ref) : '—')
             ])
           ),
           el('div', {class:'small', style:'margin-top:8px'}, 'Tip: click DET*/AN* to navigate via search; click data component ref to copy.')
@@ -2174,6 +2285,92 @@ function buildWin11EventIndex(){
       ...sections
     ));
   }
+
+  function renderDataComponentCardFromGroup(g){
+    const dc = g?.dc || null;
+    const ref = (g?.ref || '').toString();
+    const ext = (g?.ext || '').toString();
+    const name = (g?.name || '').toString();
+    const domId = dcDomId(ext || ref || name);
+
+    const dcId = (dc?.id || ref || '').toString();
+    const url = (dc?.url || '').toString();
+    const dataSource = (dc?.data_source || dc?.dataSource || '').toString();
+    const dsRef = (dc?.x_mitre_data_source_ref || dc?.x_mitre_data_source_ref_id || '').toString();
+    const desc = (dc?.description || g?.desc || '').toString();
+
+    const rootLogs = asArray(dc?.x_mitre_log_sources || dc?.x_mitre_logSources || []);
+    const refs = asArray(g?.refs || []);
+
+    // "Referenced by this analytic" rows (dedupe by name+channel)
+    const seen = new Set();
+    const refRows = [];
+    for (const r of refs){
+      const k = `${r?.name||''}|${r?.channel||''}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      refRows.push(r);
+    }
+
+    return el('details', {open:false, id: domId},
+      el('summary', {},
+        el('div', {class:'sumtitle'},
+          el('div', {class:'name'}, `${ext || 'DC?'} — ${name || 'Data Component'}`),
+          el('div', {class:'id'}, ext || dcId || '—')
+        ),
+        el('div', {class:'sub'},
+          badge('Refs', refRows.length, refRows.length ? 'good' : ''),
+          badge('Log sources', rootLogs.length, rootLogs.length ? 'good' : ''),
+          el('span', {class:'chip'}, 'click to expand')
+        )
+      ),
+      el('div', {class:'detail'},
+        el('div', {class:'meta'},
+          dcId ? idChip(dcId) : null,
+          ext ? el('span', {class:'chip', title:'DC external id (click to copy)', onclick:()=>copyText(ext)}, el('code',{class:'mono'}, ext)) : null,
+          name ? el('span', {class:'chip', title:'Name (click to copy)', onclick:()=>copyText(name)}, el('span', {class:'truncate', style:'max-width:520px'}, name)) : null,
+          dataSource ? el('span', {class:'chip', title:'Data source'}, el('b', {}, 'Data source:'), ' ', el('span', {class:'truncate', style:'max-width:520px'}, dataSource)) : null,
+          dsRef ? el('span', {class:'chip', title:'Data source ref (click to copy)', onclick:()=>copyText(dsRef)}, el('code',{class:'mono'}, dsRef)) : null,
+          url ? el('span', {class:'chip'}, el('a',{href:url, target:'_blank', rel:'noreferrer'}, 'Open reference')) : null
+        ),
+
+        desc
+          ? el('div', {},
+              el('div', {class:'h2'}, 'Description'),
+              el('div', {class:'small', style:'white-space:pre-wrap; line-height:1.45;'}, desc)
+            )
+          : null,
+
+        rootLogs.length
+          ? el('div', {},
+              el('div', {class:'h2'}, 'Data component log sources', el('span', {class:'chip'}, el('span',{class:'dot'}), fmtInt(rootLogs.length))),
+              table(
+                ['Log source','Channel'],
+                rootLogs.map(ls => [
+                  el('span', {class:'truncate', title:ls?.name || ''}, ls?.name || '—'),
+                  renderChannelWithWinEvents(ls?.name || '', ls?.channel || '')
+                ])
+              )
+            )
+          : null,
+
+        refRows.length
+          ? el('div', {},
+              el('div', {class:'h2'}, 'Referenced in this analytic', el('span', {class:'chip'}, el('span',{class:'dot'}), fmtInt(refRows.length))),
+              table(
+                ['Log source','Channel'],
+                refRows.map(ls => [
+                  el('span', {class:'truncate', title:ls?.name || ''}, ls?.name || '—'),
+                  renderChannelWithWinEvents(ls?.name || '', ls?.channel || '')
+                ])
+              )
+            )
+          : null
+      )
+    );
+  }
+
+
   function renderStrategy(s){
     const sid = s?.external_id || s?.id || '';
     const analytics = asArray(s?.x_mitre_analytics);
@@ -2184,7 +2381,7 @@ function buildWin11EventIndex(){
       logCount += asArray(a?.x_mitre_log_source_references).length;
     }
 
-    return el('details', {open:true},
+    return el('details', {open:true, id: strategyDomId(sid)},
       el('summary', {},
         el('div', {class:'sumtitle'},
           el('div', {class:'name'}, s?.name || 'Untitled strategy'),
@@ -2215,6 +2412,22 @@ function buildWin11EventIndex(){
     const aid = a.external_id || a.id || '';
     const logs = asArray(a.x_mitre_log_source_references);
 
+    const dcIdx = state.dataComponentIndex;
+    const dcGroups = new Map(); // key => {ref,ext,name,dc,refs}
+    for (const l of logs){
+      const ref = (l?.x_mitre_data_component_ref || '').toString();
+      const dc = (ref && dcIdx) ? dcIdx.get(ref) : null;
+      const ext = (dc?.external_id || dc?.externalId || l?.data_component_external_id || '').toString();
+      const name = (dc?.name || l?.data_component_name || '').toString();
+      const desc = (dc?.description || l?.description || '').toString();
+      const key = ref || ext || name;
+      if (!key) continue;
+      if (!dcGroups.has(key)) dcGroups.set(key, {ref, ext, name, desc, dc, refs: []});
+      dcGroups.get(key).refs.push(l);
+    }
+    const dcCards = Array.from(dcGroups.values());
+
+
     // Newer schema fields (v5+): x_mitre_platforms + richer narrative in description/details
     const platforms = asArray(a.x_mitre_platforms || a.platforms || a.platform);
     const detailsText = (a.details || a.detail || a.description || '').toString().trim();
@@ -2224,6 +2437,7 @@ function buildWin11EventIndex(){
 
     const headerRight = el('div', {class:'sub'},
       badge('Log sources', logs.length, logs.length ? 'good' : 'bad'),
+      badge('DCs', dcCards.length, dcCards.length ? 'good' : ''),
       platforms.length ? el('span', {class:'chip', title:'Platforms'}, el('b', {}, 'Platforms:'), ' ', platformSummary) : null
     );
 
@@ -2273,15 +2487,35 @@ function buildWin11EventIndex(){
         mutableBlock,
         el('div', {class:'h2'}, 'Log sources', el('span', {class:'chip'}, el('span', {class:'dot'}), fmtInt(logs.length))),
         logs.length ? table(
-          ['Log source','Channel','Data component ref'],
-          logs.map(l => [
-            el('span', {class:'truncate', title:l?.name || ''}, l?.name || '—'),
-            renderChannelWithWinEvents(l?.name || '', l?.channel || ''),
-            l?.x_mitre_data_component_ref
-              ? el('a', {href:'#', class:'mono', onclick:(e)=>{e.preventDefault(); copyText(l.x_mitre_data_component_ref);} }, l.x_mitre_data_component_ref)
-              : '—'
-          ])
-        ) : el('div', {class:'empty'}, 'No log source references listed for this analytic.')
+          ['Log source','Channel','DC','Data component'],
+          logs.map(l => {
+            const ref = (l?.x_mitre_data_component_ref || '').toString();
+            const dc = (ref && dcIdx) ? dcIdx.get(ref) : null;
+            const ext = (dc?.external_id || dc?.externalId || l?.data_component_external_id || '').toString();
+            const name = (dc?.name || l?.data_component_name || '').toString();
+            const desc = (dc?.description || l?.description || '').toString();
+            const domId = dcDomId(ext || ref || name);
+
+            const dcChip = ext
+              ? el('a', {href:'#', class:'chip', title:(name||'Data component') + ' (click to open card)', onclick:(e)=>{e.preventDefault(); jumpToId(domId);} }, el('code', {class:'mono'}, ext))
+              : '—';
+
+            const nameCell = name
+              ? el('a', {href:'#', class:'truncate', title:(desc||name) + (ref ? '\nref: ' + ref : ''), onclick:(e)=>{e.preventDefault(); jumpToId(domId);} }, name)
+              : (ref ? el('a', {href:'#', class:'mono', onclick:(e)=>{e.preventDefault(); copyText(ref);} }, ref) : '—');
+
+            return [
+              el('span', {class:'truncate', title:l?.name || ''}, l?.name || '—'),
+              renderChannelWithWinEvents(l?.name || '', l?.channel || ''),
+              dcChip,
+              nameCell
+            ];
+          })
+        ) : el('div', {class:'empty'}, 'No log source references listed for this analytic.'),
+        dcCards.length ? el('div', {},
+          el('div', {class:'h2'}, 'Data components', el('span', {class:'chip'}, el('span',{class:'dot'}), fmtInt(dcCards.length))),
+          el('div', {class:'stack'}, ...dcCards.map(g => renderDataComponentCardFromGroup(g)))
+        ) : null
       )
     );
   }
