@@ -2300,6 +2300,14 @@ function buildWin11EventIndex(){
     const desc = (dc?.description || g?.desc || '').toString();
 
     const rootLogs = asArray(dc?.x_mitre_log_sources || dc?.x_mitre_logSources || []);
+    const rootLogsSorted = [...rootLogs].sort((a,b)=>{
+      const an = safeLower(a?.name || '');
+      const bn = safeLower(b?.name || '');
+      if (an !== bn) return an.localeCompare(bn);
+      const ac = safeLower(a?.channel || '');
+      const bc = safeLower(b?.channel || '');
+      return ac.localeCompare(bc);
+    });
     const refs = asArray(g?.refs || []);
 
     // "Referenced by this analytic" rows (dedupe by name+channel)
@@ -2346,7 +2354,7 @@ function buildWin11EventIndex(){
               el('div', {class:'h2'}, 'Data component log sources', el('span', {class:'chip'}, el('span',{class:'dot'}), fmtInt(rootLogs.length))),
               table(
                 ['Log source','Channel'],
-                rootLogs.map(ls => [
+                rootLogsSorted.map(ls => [
                   el('span', {class:'truncate', title:ls?.name || ''}, ls?.name || '—'),
                   renderChannelWithWinEvents(ls?.name || '', ls?.channel || '')
                 ])
