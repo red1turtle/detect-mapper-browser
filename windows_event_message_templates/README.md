@@ -41,15 +41,19 @@ What it exports per provider event:
 
 Example:
 ```powershell
-# Run elevated (recommended)
-pwsh ./windows_event_message_templates/get-providerMessages.ps1 |
-  ConvertTo-Json -Depth 8 |
-  Set-Content ./windows_event_message_templates/message.json
+# Run elevated (required)
+.\get-providerMessages.help_mitre_enrichment_noteslink_v2.ps1 `
+  -AllProviders `
+  -IncludeNoTemplate `
+  -EnrichWithMitreDetectionMap `
+  -MitreDetectionMapPath .\detection_map.json `
+  -IncludeProviderErrors
 ```
 
 Optional behavior (script flags):
 - enumerate all registered providers (`-AllProviders`)
 - include events without XML templates (`-IncludeNoTemplate`)
+- enriches win events with detection strategies (`-MitreDetectionMapPath`)
 
 ---
 
