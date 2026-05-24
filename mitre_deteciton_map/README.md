@@ -37,9 +37,9 @@ Option B — use the included snapshot:
 ### 2) Build the detection map JSON
 
 ```powershell
-pwsh -NoProfile -File .\build_detection_map_v6.ps1 `
+pwsh -NoProfile -File .\build_detection_map.ps1 `
   -In  C:\temp\enterprise_attack.json `
-  -Out C:\temp\detection_map_v6.json `
+  -Out C:\temp\detection_map.json `
   -IncludeObjectFields `
   -IncludeDataComponentDetails
 ```
